@@ -19,7 +19,6 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-
 #include <stdlib.h>
 
 #define neo_list_new_1() (NeoList *)( malloc ( sizeof ( NeoList ) ) )
@@ -27,12 +26,11 @@
 typedef void *npointer;
 typedef const void *nconstpointer;
 
-typedef struct __linked_list NeoList;
-struct __linked_list {
+typedef  struct _NeoList {
         npointer data;
-        struct __linked_list *prev;
-        struct __linked_list *next;
-};
+        struct _NeoList  *prev;
+        struct _NeoList  *next;
+} NeoList;
 
 NeoList *neo_list_append ( NeoList *list, npointer data );
 NeoList *neo_list_prepend ( NeoList *list, npointer data );
@@ -74,6 +72,8 @@ static NeoList *neo_list_remove_all_real ( NeoList *list, npointer data,
                                            int ( *NeoCompareFunc ) ( nconstpointer a,
                                                                      nconstpointer b ),
                                            void ( *NeoDestroyFunc ) ( npointer data ) );
+static NeoList *neo_list_sort_real ( NeoList *list,
+                                     int ( *NeoCompareFunc ) ( nconstpointer a, nconstpointer b ) );
 
 static NeoList *neo_list_allocate () {
         NeoList *new_element = neo_list_new_1 ();
@@ -175,7 +175,6 @@ static NeoList *neo_list_insert_sorted_real ( NeoList *list, npointer data,
         NeoList *iterator = list;
         while ( iterator && NeoCompareFunc ( iterator->data, cmp_data ) < 0 )
                 iterator = iterator->next;
-        free ( user_data );
         return neo_list_insert_before ( list, iterator, data );
 }
 
@@ -339,6 +338,13 @@ static NeoList *neo_list_merge ( NeoList *list_src, NeoList *list_dest,
 
 NeoList *neo_list_sort ( NeoList *list,
                          int ( *NeoCompareFunc ) ( nconstpointer a, nconstpointer b ) ) {
+        list = neo_list_sort_real ( list, NeoCompareFunc );
+        list->prev = NULL;
+        return list;
+}
+
+static NeoList *neo_list_sort_real ( NeoList *list, int ( *NeoCompareFunc ) ( nconstpointer a,
+                                                                              nconstpointer b ) ) {
         if ( !list )
                 return NULL;
         if ( !NeoCompareFunc )
