@@ -40,6 +40,9 @@ int main ( void ) {
 
         list = neo_list_sort ( list, compare );
 
+        list = neo_list_insert_sorted_with_data ( list, neo_data_to_npointer ( 8, int ), compare,
+                                                  neo_data_to_npointer ( 2, int ) );
+
         for ( NeoList *iterator = list; iterator != NULL; iterator = iterator->next )
                 printf ( "%d\n", neo_npointer_to_data ( iterator->data, int ) );
 
