@@ -20,7 +20,7 @@
  */
 
 
-#include <malloc.h>
+#include <stdlib.h>
 
 #define neo_list_new_1() (NeoList *)( malloc ( sizeof ( NeoList ) ) )
 
