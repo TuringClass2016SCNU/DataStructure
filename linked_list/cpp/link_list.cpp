@@ -34,8 +34,37 @@ template <class T> void link_list<T>::destroy() {
   // std::cout << "destroy()" << std::endl;
 }
 
+template <class T> void link_list<T>::rm(int count) {
+  if (head->next != NULL) {
+    for (int i = 0; i < count; i++) {
+      current = current->prev;
+      delete current->next;
+    }
+
+  } else {
+    std::cerr << "You can't delete the head!(But you can change the value.)"
+              << std::endl;
+  }
+}
+
+template <class T> bool link_list<T>::write(T val) {
+  node<T> *tmp;
+  tmp = current->prev;
+  if (std::sizeof(value) != std::sizeof(tmp->value)) {
+    return 0;
+  } else {
+    current->value = val;
+    return 1;
+  }
+}
+
+template <class T> bool link_list<T>::append(T val) {
+  add();
+  write(val);
+  return 1;
+}
 // int main() {
-// link_list<double> li;
-// li.create();
-// return 0;
+//   link_list<double> li;
+//   li.create();
+//   return 0;
 // }

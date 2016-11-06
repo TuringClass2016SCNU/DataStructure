@@ -22,9 +22,12 @@ public:
   void add(int count = 1);
   void rm(int count = 1);
   void insert(node<T>);
-  void swap(node<class T>, node<class T>)
+  void swap(node<T>, node<T>);
+  bool write(T val);
+  bool append(T val);
 
-      private : void destroy();
+private:
+  void destroy();
   node<T> *head;
   node<T> *current;
 };
