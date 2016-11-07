@@ -14,13 +14,14 @@ template <class T> void link_list<T>::add(int count) {
       current = head;
       current->next = NULL;
       current->prev = NULL;
+    } else {
+      temp = current;
+      // /***/ temp->value = v;
+      current->next = new node<T>;
+      current = current->next;
+      current->next = NULL;
+      current->prev = temp;
     }
-    temp = current;
-    // /***/ temp->value = v;
-    current->next = new node<T>;
-    current = current->next;
-    current->next = NULL;
-    current->prev = temp;
   }
 }
 
