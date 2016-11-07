@@ -1,18 +1,20 @@
 #include "general_head.h"
-
+template <class T> link_list<T>::link_list() {
+  current = NULL;
+  head = NULL;
+}
 template <class T> link_list<T>::~link_list() { destroy(); }
 
-template <class T> void link_list<T>::create() {
-  std::cout << "create" << std::endl;
-  head = new node<T>;
-  head->next = NULL;
-  head->prev = NULL;
-  current = head;
-}
 template <class T> void link_list<T>::add(int count) {
   node<T> *temp;
   // std::cout << "add" << std::endl;
   for (short i = 0; i < count; i++) {
+    if (head == NULL) {
+      head = new node<T>;
+      current = head;
+      current->next = NULL;
+      current->prev = NULL;
+    }
     temp = current;
     // /***/ temp->value = v;
     current->next = new node<T>;
@@ -40,17 +42,14 @@ template <class T> void link_list<T>::rm(int count) {
       current = current->prev;
       delete current->next;
     }
-
-  } else {
-    std::cerr << "You can't delete the head!(But you can change the value.)"
-              << std::endl;
-  }
+  } else
+    delete head;
 }
 
 template <class T> bool link_list<T>::write(T val) {
   node<T> *tmp;
   tmp = current->prev;
-  if (std::sizeof(value) != std::sizeof(tmp->value)) {
+  if (sizeof(val) != sizeof(tmp->value)) {
     return 0;
   } else {
     current->value = val;
@@ -58,10 +57,9 @@ template <class T> bool link_list<T>::write(T val) {
   }
 }
 
-template <class T> bool link_list<T>::append(T val) {
+template <class T> void link_list<T>::append(T val) {
   add();
   write(val);
-  return 1;
 }
 // int main() {
 //   link_list<double> li;
