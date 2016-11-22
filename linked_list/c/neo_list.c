@@ -26,10 +26,10 @@
 typedef void *npointer;
 typedef const void *nconstpointer;
 
-typedef  struct _NeoList {
+typedef struct _NeoList {
         npointer data;
-        struct _NeoList  *prev;
-        struct _NeoList  *next;
+        struct _NeoList *prev;
+        struct _NeoList *next;
 } NeoList;
 
 NeoList *neo_list_append ( NeoList *list, npointer data );
@@ -43,7 +43,8 @@ NeoList *neo_list_insert_sorted_with_data ( NeoList *list, npointer data,
                                                                       nconstpointer b ),
                                             npointer user_data );
 NeoList *neo_list_remove ( NeoList *list, npointer data,
-                           int ( *NeoCompareFunc ) ( nconstpointer a, nconstpointer b ) );
+                           int ( *NeoCompareFunc ) ( nconstpointer a, nconstpointer b ),
+                           void ( *NeoDestroyFunc ) ( npointer data ) );
 NeoList *neo_list_remove_full ( NeoList *list, npointer data,
                                 int ( *NeoCompareFunc ) ( nconstpointer a, nconstpointer b ),
                                 void ( *NeoDestroyFunc ) ( npointer data ) );
@@ -57,6 +58,8 @@ NeoList *neo_list_sort ( NeoList *list,
                          int ( *NeoCompareFunc ) ( nconstpointer a, nconstpointer b ) );
 NeoList *neo_list_first ( NeoList *element );
 NeoList *neo_list_last ( NeoList *element );
+NeoList *neo_list_delete_link ( NeoList *list, NeoList *link_,
+                                void ( *NeoDestroyFunc ) ( npointer data ) );
 void neo_list_free ( NeoList *list );
 void neo_list_free_full ( NeoList *list, void ( *NeoDestroyFunc ) ( npointer data ) );
 static NeoList *neo_list_allocate ();
@@ -74,6 +77,7 @@ static NeoList *neo_list_remove_all_real ( NeoList *list, npointer data,
                                            void ( *NeoDestroyFunc ) ( npointer data ) );
 static NeoList *neo_list_sort_real ( NeoList *list,
                                      int ( *NeoCompareFunc ) ( nconstpointer a, nconstpointer b ) );
+void neo_list_free_1_real ( NeoList *element, void ( *NeoDestroyFunc ) ( npointer data ) );
 
 static NeoList *neo_list_allocate () {
         NeoList *new_element = neo_list_new_1 ();
@@ -200,6 +204,7 @@ static NeoList *neo_list_remove_real ( NeoList *list, npointer data,
                 return list;
 
         NeoList *iterator = list;
+        /* find the first element whose data is the same as user_data */
         while ( iterator ) {
                 if ( !NeoCompareFunc ( iterator->data, data ) )
                         break;
@@ -215,13 +220,12 @@ static NeoList *neo_list_remove_real ( NeoList *list, npointer data,
         if ( NeoDestroyFunc )
                 NeoDestroyFunc ( iterator->data );
         free ( iterator );
-        free ( data );
-
         return new_list;
 }
 
 NeoList *neo_list_remove ( NeoList *list, npointer data,
-                           int ( *NeoCompareFunc ) ( nconstpointer a, nconstpointer b ) ) {
+                           int ( *NeoCompareFunc ) ( nconstpointer a, nconstpointer b ),
+                           void ( *NeoDestroyFunc ) ( npointer data ) ) {
         return neo_list_remove_real ( list, data, NeoCompareFunc, NULL );
 }
 
@@ -253,8 +257,11 @@ NeoList *neo_list_remove_link ( NeoList *list, NeoList *llink ) {
         return new_list;
 }
 
-NeoList *neo_list_delete_link ( NeoList *list, NeoList *link_ ) {
-        return neo_list_remove_link ( list, link_ );
+NeoList *neo_list_delete_link ( NeoList *list, NeoList *link_,
+                                void ( *NeoDestroyFunc ) ( npointer data ) ) {
+        NeoList *new_list = neo_list_remove_link ( list, link_ );
+        neo_list_free_1_real ( link_, NeoDestroyFunc );
+        return new_list;
 }
 
 static NeoList *neo_list_remove_all_real ( NeoList *list, npointer data,
