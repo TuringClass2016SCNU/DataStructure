@@ -40,12 +40,23 @@ int main ( void ) {
 
         list = neo_list_sort ( list, compare );
 
+        npointer cmp_data = neo_data_to_npointer ( 2, int );
         list = neo_list_insert_sorted_with_data ( list, neo_data_to_npointer ( 8, int ), compare,
-                                                  neo_data_to_npointer ( 2, int ) );
+                                                  cmp_data );
+        free ( cmp_data );
+        cmp_data = NULL;
+
+        list = neo_list_delete_link ( list, neo_list_first ( list )->next, free );
 
         for ( NeoList *iterator = list; iterator != NULL; iterator = iterator->next )
                 printf ( "%d\n", neo_npointer_to_data ( iterator->data, int ) );
 
-        neo_list_free_full ( list, free );
+        NeoList *tmp = list;
+        while ( tmp ) {
+                NeoList *next = tmp->next;
+                free ( tmp->data );
+                free ( tmp );
+                tmp = next;
+        }
         return 0;
 }
