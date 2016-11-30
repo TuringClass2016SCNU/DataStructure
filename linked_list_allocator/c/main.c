@@ -39,18 +39,24 @@
                     ░
 */
 
-#include "nallocator.h"
+#include "nmempool.h"
 #include <stdio.h>
 
+typedef struct _LinkedList {
+        void *data;
+        struct _LinkedList *next;
+} LinkedList;
+
 int main ( void ) {
-        NAllocator *allocator = n_allocator_init ( 4, 8 );
-        size_t *a[ 5 ];
-        for ( size_t i = 0; i < 4; ++i )
-                a[ i ] = n_allocator_alloc ( allocator ), *a[ i ] = i + 3;
-        for ( size_t i = 0; i < 4; ++i )
-                printf ( "%ld\n", *a[ i ] );
-        n_allocator_recycle ( a[ 3 ] );
-        a[ 4 ] = n_allocator_alloc ( allocator );
-        printf ( "%p\n", a[ 4 ] );
+        LinkedList *list = n_mempool_alloc ( sizeof ( LinkedList ) );
+        for ( size_t i = 0; i < 1 << 15; ++i ) {
+                list->next = n_mempool_alloc ( sizeof ( LinkedList ) );
+                list = list->next;
+                list->next = NULL;
+        }
+        n_mempool_add_handler ( 16, 32, 10, n_mempool_increase_func, "first" );
+        n_mempool_add_handler ( 16, 32, 10, n_mempool_increase_func, "second" );
+	n_mempool_active("first");
+        n_mempool_destroy ();
         return 0;
 }

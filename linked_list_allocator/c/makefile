@@ -1,17 +1,18 @@
-main : main.o nallocator.o
-	cc -o main main.o nallocator.o \
-	-I. \
-	-g \
-	-Wall 
-main.o : main.c nallocator.h
+main : main.o nallocator.o nmempool.o
+	cc -o main main.o nallocator.o nmempool.o \
+		-g \
+		-Wall 
+main.o : main.c nallocator.h nmempool.h
 	cc -o main.o -c main.c \
-	-I. \
-	-g \
-	-Wall 
-nallocator.o : nallocator.c nallocator.h
+		-g \
+		-Wall 
+nallocator.o : nallocator.c nallocator.h nmempool.h
 	cc -o nallocator.o -c nallocator.c \
-	-I. \
-	-g \
-	-Wall 
+		-g \
+		-Wall 
+nmempool.o : nmempool.c nallocator.h nmempool.h
+	cc -o nmempool.o -c nmempool.c \
+		-g \
+		-Wall 
 clean :
 	rm *.o

@@ -12,9 +12,11 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
  * FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
  * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+ * the
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
@@ -34,19 +36,12 @@
 #include "nallocator.h"
 #include <stdlib.h>
 
-#define ALIGN_SIZE 16
-#define n_type_malloc( type, count ) (type *)malloc ( sizeof ( type ) * count )
-#define n_size_malloc( size ) malloc ( ( size ) )
-#define n_alignment_up( oper, size ) ( ( ( oper ) + (size)-1 ) & ( ~( (size)-1 ) ) )
-
 // static NAllocator *last_allocator = NULL;
 
-NAllocator *allocator_list = NULL;
+static NAllocator *n_allocator_map_mem ( NAllocator *allocator, void *real_mem );
 
-static void n_allocator_map_mem ( NAllocator *allocator, void *real_mem );
 
 NAllocator *n_allocator_init ( size_t blk_cnt, size_t blk_size ) {
-
         /* Allocator initializaiton */
         NAllocator *allocator = n_type_malloc ( NAllocator, 1 );
 
@@ -55,55 +50,41 @@ NAllocator *n_allocator_init ( size_t blk_cnt, size_t blk_size ) {
                               n_alignment_up ( blk_size, ALIGN_SIZE );
         allocator->prev = allocator->next = NULL;
 
-        n_allocator_map_mem ( allocator, malloc ( allocator->blk_cnt * allocator->blk_size ) );
-        return allocator;
+        return n_allocator_map_mem ( allocator,
+                                     malloc ( allocator->blk_cnt * allocator->blk_size ) );
 }
 
-static void n_allocator_map_mem ( NAllocator *allocator, void *real_mem ) {
-
+static NAllocator *n_allocator_map_mem ( NAllocator *allocator, void *real_mem ) {
         NBlock *nblocks = n_type_malloc ( NBlock, allocator->blk_cnt );
+
+        allocator->real_mem = real_mem;
+        allocator->abstract_mem = nblocks;
+
         allocator->free_list = nblocks;
+
         allocator->busy_list = NULL;
 
         NBlock *iter = nblocks, *bound = iter + allocator->blk_cnt;
         char *tmp_ptr = real_mem;
 
-        iter->prev = NULL;
         while ( iter < bound ) {
                 iter->allocator_ref = allocator;
                 iter->data = tmp_ptr + n_alignment_up ( sizeof ( NBlock * ), ALIGN_SIZE );
-                iter->next = ( iter + 1 != bound ) ? iter + 1 : NULL;
 
-                if ( iter->next != NULL )
-                        iter->next->prev = iter;
+                iter->prev = ( iter == nblocks ) ? NULL : iter - 1;
+                iter->next = ( iter + 1 == bound ) ? NULL : iter + 1;
 
                 *(NBlock **)tmp_ptr = iter;
+                *(size_t *)( tmp_ptr + sizeof ( NBlock * ) ) = MAGIC_NUMNER;
+
                 tmp_ptr += allocator->blk_size;
                 ++iter;
         }
-}
 
-NAllocator *n_allocator_append ( NAllocator *allocator ) {
-        /* If allocator is NULL, do not add anything */
-        if ( allocator == NULL )
-                return allocator_list;
-
-        /* If allcator list is empty, add it as the head */
-        if ( allocator_list == NULL )
-                allocator_list = allocator;
-
-        else {
-                /* Add on to the tail */
-                allocator_list->next = allocator;
-                allocator->prev = allocator_list;
-                allocator_list = allocator;
-        }
-
-        return allocator_list;
+        return allocator;
 }
 
 void *n_allocator_alloc ( NAllocator *allocator ) {
-
         /* Allocate failed */
         if ( allocator->free_list == NULL )
                 return NULL;
@@ -128,6 +109,11 @@ void *n_allocator_alloc ( NAllocator *allocator ) {
 void n_allocator_recycle ( void *ptr ) {
         if ( ptr == NULL )
                 return;
+        if ( (size_t)ptr < sizeof ( size_t ) )
+                return;
+        if ( *(size_t *)( (char *)ptr - sizeof ( size_t ) ) != MAGIC_NUMNER )
+                return;
+
         NBlock *release =
             *(NBlock **)( (char *)ptr - n_alignment_up ( sizeof ( NBlock * ), ALIGN_SIZE ) );
         NAllocator *allocator = release->allocator_ref;
@@ -136,7 +122,6 @@ void n_allocator_recycle ( void *ptr ) {
                 release->prev->next = release->next;
         if ( release->next )
                 release->next->prev = release->prev;
-
 
         allocator->busy_list = release->next;
 
