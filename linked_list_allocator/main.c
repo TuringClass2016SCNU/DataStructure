@@ -52,8 +52,8 @@ int main ( void ) {
         for ( size_t i = 0; i < 1 << 15; ++i ) {
                 list->next = n_mempool_alloc ( sizeof ( LinkedList ) );
                 list = list->next;
+                list->next = NULL;
         }
-	list->next = NULL;
         n_mempool_add_handler ( 16, 32, 10, n_mempool_increase_func, "first" );
         n_mempool_add_handler ( 16, 32, 10, n_mempool_increase_func, "second" );
 	n_mempool_active("first");

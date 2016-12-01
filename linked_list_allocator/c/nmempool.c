@@ -32,15 +32,45 @@
             ░     ░ ░      ░  ░
 */
 
+#include "nallocator.h"
 #include "nmempool.h"
 #include <stdlib.h>
 #include <string.h>
 
-NMemoryPool *n_global_pool = NULL;
-NAllocatorHandle *n_mempool_handler_init ( size_t min_blk_cnt, size_t min_blk_size,
-                                           size_t allocator_types,
-                                           size_t ( *increase_func ) ( size_t base_size ),
-                                           char *id );
+typedef struct _NAllocatorHandle {
+        /* An array that hold the fixed size NAllocator */
+
+        /*
+         *
+         * Hold the memory whose size is between 16 bytes and 4096 btyes by
+         * default
+         * size:
+         * 	1:	size > 4096
+         * 	>=2:	16 32 64 128 256 512 1024 2048 4096
+         * 	total:	10
+         *
+         */
+        char *owner;
+        NAllocator **allocator_list;
+        size_t min_blk_cnt;
+        size_t min_blk_size;
+        size_t allocator_types;
+        size_t ( *increase_func ) ( size_t base_size );
+
+        struct _NAllocatorHandle *prev;
+        struct _NAllocatorHandle *next;
+} NAllocatorHandle;
+
+typedef struct _NMemoryPool {
+        NAllocatorHandle *handle_list;
+        NAllocatorHandle *active;
+} NMemoryPool;
+
+static NMemoryPool *n_global_pool = NULL;
+static NAllocatorHandle *n_mempool_handler_init ( size_t min_blk_cnt, size_t min_blk_size,
+                                                  size_t allocator_types,
+                                                  size_t ( *increase_func ) ( size_t base_size ),
+                                                  char *id );
 
 size_t n_mempool_increase_func ( size_t base_size ) { return base_size << 1; }
 
@@ -68,16 +98,17 @@ void *n_mempool_alloc ( size_t mem_size ) {
                 }
                 return n_allocator_alloc ( t );
         }
-        NAllocator *iter = p_allocator[ 0 ], *iter_prev = NULL;
+        NAllocator *iter = p_allocator[ 0 ], *prev = NULL;
         while ( iter && iter->free_list == NULL ) {
-                iter_prev = iter;
+                if ( iter->next == NULL )
+                        prev = iter;
                 iter = iter->next;
         }
         if ( iter == NULL ) {
                 NAllocator *t =
                     n_allocator_init ( p_allocator[ 0 ]->blk_cnt, p_allocator[ 0 ]->blk_size );
-                iter_prev->next = t;
-                t->prev = iter_prev;
+                prev->next = t;
+                t->prev = prev;
                 return n_allocator_alloc ( t );
         }
         return n_allocator_alloc ( iter );
@@ -90,8 +121,11 @@ void n_mempool_destroy () {
                 return;
         NAllocatorHandle *handler = n_global_pool->handle_list;
         while ( handler ) {
+
                 NAllocatorHandle *t_handler = handler->next;
+
                 NAllocator **p_allocator = NULL, **bound = NULL;
+
                 for ( p_allocator = handler->allocator_list,
                       bound = p_allocator + handler->allocator_types;
                       p_allocator != bound; ++p_allocator ) {
@@ -104,6 +138,7 @@ void n_mempool_destroy () {
                                 allocator = t_allocator;
                         }
                 }
+
                 free ( handler->allocator_list );
                 free ( handler );
                 handler = t_handler;
@@ -128,10 +163,10 @@ void n_mempool_add_handler ( size_t min_blk_cnt, size_t min_blk_size, size_t all
         }
 }
 
-NAllocatorHandle *n_mempool_handler_init ( size_t min_blk_cnt, size_t min_blk_size,
-                                           size_t allocator_types,
-                                           size_t ( *increase_func ) ( size_t base_size ),
-                                           char *id ) {
+static NAllocatorHandle *n_mempool_handler_init ( size_t min_blk_cnt, size_t min_blk_size,
+                                                  size_t allocator_types,
+                                                  size_t ( *increase_func ) ( size_t base_size ),
+                                                  char *id ) {
         NAllocatorHandle *new = n_type_malloc ( NAllocatorHandle, 1 );
         new->owner = id;
         new->prev = new->next = NULL;

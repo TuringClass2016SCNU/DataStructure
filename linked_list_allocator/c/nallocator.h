@@ -47,8 +47,6 @@ typedef struct _NAllocator {
 
 NAllocator *n_allocator_init ( size_t blk_cnt, size_t blk_size );
 
-NAllocator *n_allocator_append ( NAllocator *allocator, NAllocator *new_allocator );
-
 void *n_allocator_alloc ( NAllocator *allocator );
 
 void n_allocator_recycle ( void *ptr );
