@@ -182,7 +182,7 @@ static NAllocatorHandle *n_mempool_handler_init ( size_t min_blk_cnt, size_t min
         while ( iter < bound - 1 ) {
                 iter[ 0 ] = n_allocator_init ( min_blk_cnt, bsize );
                 iter[ 0 ]->prev = iter[ 0 ]->next = NULL;
-                bsize = n_mempool_increase_func ( bsize );
+                bsize = increase_func ( bsize );
                 ++iter;
         }
         *iter = NULL;
